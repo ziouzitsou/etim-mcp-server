@@ -1,10 +1,16 @@
 # ETIM MCP Server
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Docker](https://img.shields.io/badge/docker-required-blue.svg)](https://www.docker.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://github.com/modelcontextprotocol)
-[![ETIM API v2.0](https://img.shields.io/badge/ETIM%20API-v2.0-orange.svg)](https://www.etim-international.com/)
+<p align="center">
+  <img src="https://www.etim-international.com/wp-content/uploads/2019/07/ETIM-International_logo.svg" alt="ETIM International" width="300"/>
+</p>
+
+<p align="center">
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11+-blue.svg" alt="Python 3.11+"/></a>
+  <a href="https://www.docker.com/"><img src="https://img.shields.io/badge/docker-required-blue.svg" alt="Docker"/></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"/></a>
+  <a href="https://github.com/modelcontextprotocol"><img src="https://img.shields.io/badge/MCP-Compatible-green.svg" alt="MCP"/></a>
+  <a href="https://www.etim-international.com/"><img src="https://img.shields.io/badge/ETIM%20API-v2.0-orange.svg" alt="ETIM API v2.0"/></a>
+</p>
 
 A production-ready Model Context Protocol (MCP) server that provides LLMs with direct access to the ETIM Classification API. This server enables AI assistants like Claude to query product classifications, technical features, and standardized product information from the international ETIM database.
 
