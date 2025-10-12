@@ -641,6 +641,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Built with [FastMCP](https://github.com/modelcontextprotocol/python-sdk)
 - Powered by [ETIM International](https://www.etim-international.com/)
 - Uses Redis for caching, httpx for async HTTP, Pydantic for configuration
+- Developed and tested with assistance from [Anthropic Claude Code](https://claude.ai/code), based on the original codebase and guidance from the project maintainer
 
 ## Support
 
