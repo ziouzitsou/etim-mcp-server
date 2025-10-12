@@ -139,6 +139,20 @@ Stop the server:
 docker-compose down
 ```
 
+### Testing with Claude Code
+
+For testing with Claude Code in the same directory, a local `mcp.json` file is included:
+
+```bash
+# Open a new Claude Code terminal in this directory
+cd "/home/sysadmin/Foss Google Drive/ETIM/ETIM_API/etim-mcp-server"
+
+# Claude Code will automatically detect and use the mcp.json configuration
+# Try commands like: "Search ETIM for cable products"
+```
+
+The `mcp.json` file contains the MCP server configuration and allows Claude Code to connect to the ETIM server for testing.
+
 ### Claude Desktop Integration
 
 To use this MCP server with Claude Desktop, add the following to your Claude configuration:
