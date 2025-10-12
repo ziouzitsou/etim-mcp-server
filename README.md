@@ -8,7 +8,7 @@ ETIM (Electro-Technical Information Model) is an international standard for clas
 
 ## Features
 
-- **17 MCP Tools** for comprehensive ETIM API access:
+- **21 MCP Tools** for comprehensive ETIM API access:
   - Search product classes, features, groups, feature groups, values, and units
   - Get detailed information about all ETIM entities
   - Compare multiple product classes side-by-side
@@ -252,6 +252,53 @@ Get list of ETIM release versions.
 **Parameters**: None
 
 **Example**: "Show me ETIM release versions"
+
+### get_all_languages
+Get list of ALL ETIM languages globally (not just account-specific languages).
+
+**Parameters**: None
+
+**Example**: "Show me all ETIM languages available globally"
+
+**Note**: This differs from `get_supported_languages` which returns only languages your account can access.
+
+### get_class_details_many
+Get details for multiple classes in a single request (batch operation).
+
+**Parameters**:
+- `classes` (required): List of class dictionaries with 'code' and optionally 'version'
+  - Example: `[{"code": "EC003025", "version": 1}, {"code": "EC003025", "version": 2}]`
+- `language` (optional): Language code (default: EN)
+- `include_features` (optional): Include full features list (default: true)
+
+**Example**: "Get details for classes EC001744 version 1 and version 2"
+
+**Use Cases**: Bulk catalog updates, version comparisons, data migration
+
+### get_all_class_versions
+Get ALL versions of a specific class (complete version history).
+
+**Parameters**:
+- `class_code` (required): ETIM class code (e.g., "EC002883")
+- `language` (optional): Language code (default: EN)
+- `include_features` (optional): Include full features list (default: false for performance)
+
+**Example**: "Show me all versions of class EC002883"
+
+**Use Cases**: Classification evolution tracking, migration planning, change history
+
+### get_class_for_release
+Get class details for a specific ETIM release version.
+
+**Parameters**:
+- `class_code` (required): ETIM class code (e.g., "EC000034")
+- `release` (required): ETIM release name (e.g., "ETIM-9.0", "ETIM-10.0")
+- `language` (optional): Language code (default: EN)
+- `include_features` (optional): Include full features list (default: true)
+
+**Example**: "Get class EC000034 as it was in ETIM-9.0"
+
+**Use Cases**: Testing against specific versions, legacy system compatibility, release comparison
 
 ### compare_classes
 Compare multiple ETIM product classes side-by-side.
@@ -585,10 +632,17 @@ For MCP protocol questions:
 
 ## Version History
 
-- **1.1.0** (Current): Phase 1 expansion
+- **1.2.0** (Current): Phase 2 expansion - Batch operations & complete API coverage
+  - Added 4 new tools: All Languages, Batch Class Details, All Class Versions, Class for Release
+  - Now covers 21 MCP tools (up from 17)
+  - Enhanced API coverage from 60% to 76% of available endpoints
+  - Added batch operations for performance optimization
+  - Added version history and release-specific queries
+  - All 21 tools ready for testing (2025-10-12)
+- **1.1.0**: Phase 1 expansion
   - Added 8 new tools: Values, Units, Feature Groups, Group Details, Class Diff
   - Now covers 17 MCP tools (up from 9)
-  - Enhanced API coverage from 29% to 65% of available endpoints
+  - Enhanced API coverage from 29% to 60% of available endpoints
   - Improved caching for all new endpoints
   - All 17 tools validated against HTTP file examples (2025-10-12)
 - **1.0.0**: Initial release with 9 tools, Redis caching, and Docker Compose setup

@@ -303,6 +303,138 @@ async def get_etim_releases(
 
 
 @mcp.tool()
+async def get_all_languages(
+    ctx: Context[ServerSession, AppContext] = None,
+) -> list:
+    """
+    Get list of ALL ETIM languages globally (not just account-specific).
+
+    This differs from get_supported_languages which returns only the languages
+    your account has access to. This tool returns all languages available in ETIM.
+
+    Returns:
+        List of all ETIM language dictionaries with code and description
+    """
+    client = ctx.request_context.lifespan_context.client
+
+    try:
+        result = await client.get_all_languages()
+        return result
+    except Exception as e:
+        logger.error(f"Error getting all languages: {e}")
+        return []
+
+
+@mcp.tool()
+async def get_class_details_many(
+    classes: list[dict],
+    language: str = "EN",
+    include_features: bool = True,
+    ctx: Context[ServerSession, AppContext] = None,
+) -> list:
+    """
+    Get details for multiple classes in a single request (batch operation).
+
+    This is much more efficient than calling get_class_details multiple times.
+    Perfect for bulk operations, version comparisons, or catalog updates.
+
+    Args:
+        classes: List of class dictionaries, each with 'code' and optionally 'version'
+                 Example: [{"code": "EC003025", "version": 1}, {"code": "EC003025", "version": 2}]
+        language: Language code (EN, de-DE, nl-BE, etc.)
+        include_features: Include full list of features
+
+    Returns:
+        List of class details for all requested classes
+    """
+    client = ctx.request_context.lifespan_context.client
+
+    try:
+        result = await client.get_class_details_many(
+            classes=classes,
+            language=language,
+            include_features=include_features
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Error getting class details for multiple classes: {e}")
+        return {"error": str(e), "classes": classes}
+
+
+@mcp.tool()
+async def get_all_class_versions(
+    class_code: str,
+    language: str = "EN",
+    include_features: bool = False,
+    ctx: Context[ServerSession, AppContext] = None,
+) -> list:
+    """
+    Get ALL versions of a specific class (complete version history).
+
+    This shows how a product classification has evolved across ETIM releases.
+    Perfect for understanding classification changes and migration planning.
+
+    Args:
+        class_code: ETIM class code (e.g., "EC002883")
+        language: Language code (EN, de-DE, nl-BE, etc.)
+        include_features: Include full list of features (default: false for performance)
+
+    Returns:
+        List of all versions (v1, v2, v3, etc.) with full details
+    """
+    client = ctx.request_context.lifespan_context.client
+
+    try:
+        result = await client.get_all_class_versions(
+            class_code=class_code,
+            language=language,
+            include_features=include_features
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Error getting all versions for class {class_code}: {e}")
+        return {"error": str(e), "code": class_code}
+
+
+@mcp.tool()
+async def get_class_for_release(
+    class_code: str,
+    release: str,
+    language: str = "EN",
+    include_features: bool = True,
+    ctx: Context[ServerSession, AppContext] = None,
+) -> dict:
+    """
+    Get class details for a specific ETIM release.
+
+    This retrieves exactly what was in a specific ETIM version (e.g., ETIM-9.0).
+    Perfect for testing against specific versions or maintaining legacy system compatibility.
+
+    Args:
+        class_code: ETIM class code (e.g., "EC000034")
+        release: ETIM release name (e.g., "ETIM-9.0", "ETIM-10.0")
+        language: Language code (EN, de-DE, nl-BE, etc.)
+        include_features: Include full list of features
+
+    Returns:
+        Class details as they existed in the specified ETIM release
+    """
+    client = ctx.request_context.lifespan_context.client
+
+    try:
+        result = await client.get_class_for_release(
+            class_code=class_code,
+            release=release,
+            language=language,
+            include_features=include_features
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Error getting class {class_code} for release {release}: {e}")
+        return {"error": str(e), "code": class_code, "release": release}
+
+
+@mcp.tool()
 async def compare_classes(
     class_codes: list[str],
     language: str = "EN",

@@ -168,11 +168,17 @@ class EtimAPIClient:
         if version is not None:
             data["version"] = version
 
+        # Always include descriptions and translations for synonyms
+        data["include"] = {
+            "descriptions": True,
+            "translations": True,
+        }
+
+        # Optionally include features
         if include_features:
-            data["include"] = {
-                "descriptions": True,
-                "fields": ["Features", "Group"],
-            }
+            data["include"]["fields"] = ["Features", "Group"]
+        else:
+            data["include"]["fields"] = ["Group"]
 
         result = await self._make_request("POST", "/api/v2/Class/Details", data)
 
@@ -330,6 +336,170 @@ class EtimAPIClient:
 
         # Cache with long TTL
         await self.cache.set(cache_key, result, settings.cache_languages_ttl)
+
+        return result
+
+    async def get_all_languages(self) -> List[Dict[str, str]]:
+        """
+        Get list of ALL ETIM languages (not just account-specific)
+
+        Returns:
+            List of all language dictionaries with code and description
+        """
+        cache_key = "languages:all"
+        cached = await self.cache.get(cache_key)
+        if cached:
+            return cached
+
+        logger.info("Getting all ETIM languages")
+        result = await self._make_request("GET", "/api/v2/Misc/Languages")
+
+        # Cache with long TTL
+        await self.cache.set(cache_key, result, settings.cache_languages_ttl)
+
+        return result
+
+    async def get_class_details_many(
+        self,
+        classes: List[Dict[str, Any]],
+        language: str = None,
+        include_features: bool = True,
+    ) -> List[Dict[str, Any]]:
+        """
+        Get details for multiple classes in a single request (batch operation)
+
+        Args:
+            classes: List of class objects with 'code' and optionally 'version'
+                    e.g., [{"code": "EC001744", "version": 5}, {"code": "EC002710"}]
+            language: Language code
+            include_features: Whether to include features
+
+        Returns:
+            List of class details
+        """
+        language = language or self.default_language
+
+        # Generate cache key from class codes/versions
+        class_keys = tuple(f"{c['code']}:{c.get('version', 'latest')}" for c in classes)
+        cache_key = self.cache.generate_key("class:many", class_keys, language, include_features)
+        cached = await self.cache.get(cache_key)
+        if cached:
+            return cached
+
+        logger.info(f"Getting details for {len(classes)} classes (lang: {language})")
+        data = {
+            "classes": classes,
+            "languagecode": language,
+            "include": {
+                "descriptions": True,
+                "translations": True,
+            },
+        }
+
+        if include_features:
+            data["include"]["fields"] = ["Features", "Group", "Releases"]
+        else:
+            data["include"]["fields"] = ["Group", "Releases"]
+
+        result = await self._make_request("POST", "/api/v2/Class/DetailsMany", data)
+
+        # Cache with longer TTL
+        await self.cache.set(cache_key, result, settings.cache_class_ttl)
+
+        return result
+
+    async def get_all_class_versions(
+        self,
+        class_code: str,
+        language: str = None,
+        include_features: bool = False,
+    ) -> List[Dict[str, Any]]:
+        """
+        Get ALL versions of a specific class
+
+        Args:
+            class_code: ETIM class code (e.g., EC002883)
+            language: Language code
+            include_features: Whether to include features for each version
+
+        Returns:
+            List of all class versions with details
+        """
+        language = language or self.default_language
+
+        cache_key = self.cache.generate_key("class:allversions", class_code, language, include_features)
+        cached = await self.cache.get(cache_key)
+        if cached:
+            return cached
+
+        logger.info(f"Getting all versions of class: {class_code} (lang: {language})")
+        data = {
+            "code": class_code,
+            "languagecode": language,
+            "include": {
+                "descriptions": True,
+                "translations": True,
+            },
+        }
+
+        if include_features:
+            data["include"]["fields"] = ["Features", "Group", "Releases"]
+        else:
+            data["include"]["fields"] = ["Group", "Releases"]
+
+        result = await self._make_request("POST", "/api/v2/Class/DetailsManyByCode", data)
+
+        # Cache with longer TTL
+        await self.cache.set(cache_key, result, settings.cache_class_ttl)
+
+        return result
+
+    async def get_class_for_release(
+        self,
+        class_code: str,
+        release: str,
+        language: str = None,
+        include_features: bool = True,
+    ) -> Dict[str, Any]:
+        """
+        Get class details for a specific ETIM release
+
+        Args:
+            class_code: ETIM class code (e.g., EC000034)
+            release: ETIM release name (e.g., "ETIM-9.0", "DYNAMIC")
+            language: Language code
+            include_features: Whether to include features
+
+        Returns:
+            Class details for the specified release
+        """
+        language = language or self.default_language
+
+        cache_key = self.cache.generate_key("class:release", class_code, release, language, include_features)
+        cached = await self.cache.get(cache_key)
+        if cached:
+            return cached
+
+        logger.info(f"Getting class {class_code} for release {release} (lang: {language})")
+        data = {
+            "code": class_code,
+            "release": release,
+            "languagecode": language,
+            "include": {
+                "descriptions": True,
+                "translations": True,
+            },
+        }
+
+        if include_features:
+            data["include"]["fields"] = ["Features", "Group", "Releases"]
+        else:
+            data["include"]["fields"] = ["Group", "Releases"]
+
+        result = await self._make_request("POST", "/api/v2/Class/DetailsForRelease", data)
+
+        # Cache with longer TTL
+        await self.cache.set(cache_key, result, settings.cache_class_ttl)
 
         return result
 
