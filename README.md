@@ -1,10 +1,23 @@
 # ETIM MCP Server
 
-A Model Context Protocol (MCP) server that provides LLMs with direct access to the ETIM Classification API. This server enables AI assistants to query product classifications, technical features, and standardized product information from the international ETIM database.
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Docker](https://img.shields.io/badge/docker-required-blue.svg)](https://www.docker.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://github.com/modelcontextprotocol)
+[![ETIM API v2.0](https://img.shields.io/badge/ETIM%20API-v2.0-orange.svg)](https://www.etim-international.com/)
+
+A production-ready Model Context Protocol (MCP) server that provides LLMs with direct access to the ETIM Classification API. This server enables AI assistants like Claude to query product classifications, technical features, and standardized product information from the international ETIM database.
 
 ## Overview
 
-ETIM (Electro-Technical Information Model) is an international standard for classifying technical products, primarily focused on electrical and electronic products. This MCP server wraps the ETIM API v2.0 and exposes it through the Model Context Protocol, making it accessible to any MCP-compatible AI assistant.
+**ETIM** (Electro-Technical Information Model) is the international standard for classifying technical products, with a focus on electrical and electronic products. This MCP server wraps the ETIM API v2.0 and exposes it through the Model Context Protocol, making standardized product data accessible to any MCP-compatible AI assistant.
+
+**Perfect for**:
+- 🏢 E-commerce platforms needing standardized product data
+- 🔌 Electrical product manufacturers and distributors
+- 📊 Data integration and migration projects
+- 🤖 AI-powered product recommendation systems
+- 🔍 Technical product search and comparison tools
 
 ## Features
 
@@ -47,11 +60,14 @@ ETIM (Electro-Technical Information Model) is an international standard for clas
 - ETIM API credentials (client_id and client_secret)
 - Internet connection for ETIM API access
 
-## Installation
+## Quick Start
 
-1. **Clone or download this repository**:
+### Installation
+
+1. **Clone the repository**:
    ```bash
-   cd /path/to/your/projects
+   git clone https://github.com/ziouzitsou/etim-mcp-server.git
+   cd etim-mcp-server
    ```
 
 2. **Create a `.env` file** from the example template:
@@ -610,11 +626,17 @@ The `-v` flag removes volumes, including Redis data.
 - No credentials are logged or exposed in responses
 - Redis is accessible only within Docker network (not exposed externally)
 
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
 ## License
 
-This project is private and proprietary. Not for redistribution.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Credits
+## Acknowledgements
 
 - Built with [FastMCP](https://github.com/modelcontextprotocol/python-sdk)
 - Powered by [ETIM International](https://www.etim-international.com/)
