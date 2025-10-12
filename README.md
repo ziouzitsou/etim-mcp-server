@@ -8,10 +8,11 @@ ETIM (Electro-Technical Information Model) is an international standard for clas
 
 ## Features
 
-- **9 MCP Tools** for comprehensive ETIM API access:
-  - Search product classes, features, and groups
-  - Get detailed information about classifications
+- **17 MCP Tools** for comprehensive ETIM API access:
+  - Search product classes, features, groups, feature groups, values, and units
+  - Get detailed information about all ETIM entities
   - Compare multiple product classes side-by-side
+  - Track classification changes between versions
   - Health checks for server components
   - Get supported languages and ETIM releases
 
@@ -261,6 +262,85 @@ Compare multiple ETIM product classes side-by-side.
 
 **Example**: "Compare classes EC001744 and EC001679"
 
+### search_values
+Search ETIM feature values (colors, materials, connector types, etc.).
+
+**Parameters**:
+- `search_text` (required): Search query
+- `language` (optional): Language code (default: EN)
+- `deprecated` (optional): Include deprecated values (default: false)
+- `max_results` (optional): Maximum results (1-100, default: 10)
+
+**Example**: "Search for red color values"
+
+### get_value_details
+Get detailed information about a specific ETIM value.
+
+**Parameters**:
+- `value_code` (required): ETIM value code (e.g., "EV000397")
+- `language` (optional): Language code (default: EN)
+
+**Example**: "Get details for value EV000397"
+
+### search_units
+Search measurement units (millimeters, watts, volts, etc.).
+
+**Parameters**:
+- `search_text` (required): Search query
+- `language` (optional): Language code (default: EN)
+- `deprecated` (optional): Include deprecated units (default: false)
+- `max_results` (optional): Maximum results (1-100, default: 10)
+
+**Example**: "Search for millimeter units"
+
+### get_unit_details
+Get detailed information about a specific measurement unit.
+
+**Parameters**:
+- `unit_code` (required): ETIM unit code (e.g., "EU571097")
+- `language` (optional): Language code (default: EN)
+
+**Example**: "Get details for unit EU571097"
+
+### search_feature_groups
+Search ETIM feature groups (organizational categories for features).
+
+**Parameters**:
+- `search_text` (required): Search query
+- `language` (optional): Language code (default: EN)
+- `max_results` (optional): Maximum results (1-100, default: 10)
+
+**Example**: "Search for electrical feature groups"
+
+### get_feature_group_details
+Get detailed information about a specific feature group.
+
+**Parameters**:
+- `feature_group_code` (required): ETIM feature group code (e.g., "EFG00004")
+- `language` (optional): Language code (default: EN)
+
+**Example**: "Get details for feature group EFG00004"
+
+### get_group_details
+Get detailed information about a specific product group.
+
+**Parameters**:
+- `group_code` (required): ETIM group code (e.g., "EG020005")
+- `language` (optional): Language code (default: EN)
+- `include_releases` (optional): Include releases information (default: true)
+
+**Example**: "Get details for group EG020005"
+
+### get_class_diff
+Get class details WITH changes compared to previous version. Perfect for tracking classification evolution and understanding what changed between versions.
+
+**Parameters**:
+- `class_code` (required): ETIM class code (e.g., "EC000034")
+- `version` (required): Class version to compare (must be version 2 or higher)
+- `language` (optional): Language code (default: EN)
+
+**Example**: "Show me what changed in EC000034 version 7"
+
 ### health_check
 Check server health and connection status.
 
@@ -505,4 +585,10 @@ For MCP protocol questions:
 
 ## Version History
 
-- **1.0.0** (Current): Initial release with 9 tools, Redis caching, and Docker Compose setup
+- **1.1.0** (Current): Phase 1 expansion
+  - Added 8 new tools: Values, Units, Feature Groups, Group Details, Class Diff
+  - Now covers 17 MCP tools (up from 9)
+  - Enhanced API coverage from 29% to 65% of available endpoints
+  - Improved caching for all new endpoints
+  - All 17 tools validated against HTTP file examples (2025-10-12)
+- **1.0.0**: Initial release with 9 tools, Redis caching, and Docker Compose setup

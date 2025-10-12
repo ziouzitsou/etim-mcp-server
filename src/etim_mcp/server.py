@@ -342,6 +342,265 @@ async def compare_classes(
 
 
 @mcp.tool()
+async def search_values(
+    search_text: str,
+    language: str = "EN",
+    deprecated: bool = False,
+    max_results: int = 10,
+    ctx: Context[ServerSession, AppContext] = None,
+) -> dict:
+    """
+    Search ETIM feature values (colors, materials, connector types, etc.).
+
+    Args:
+        search_text: Search query
+        language: Language code (EN, de-DE, nl-BE, etc.)
+        deprecated: Include deprecated values
+        max_results: Maximum number of results (1-100)
+
+    Returns:
+        Dictionary with matching values
+    """
+    client = ctx.request_context.lifespan_context.client
+
+    try:
+        result = await client.search_values(
+            search_text=search_text,
+            language=language,
+            deprecated=deprecated,
+            from_=0,
+            size=min(max_results, 100)
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Error searching values: {e}")
+        return {"error": str(e)}
+
+
+@mcp.tool()
+async def get_value_details(
+    value_code: str,
+    language: str = "EN",
+    ctx: Context[ServerSession, AppContext] = None,
+) -> dict:
+    """
+    Get detailed information about a specific ETIM value.
+
+    Args:
+        value_code: ETIM value code (e.g., "EV000397")
+        language: Language code
+
+    Returns:
+        Value details including description and translations
+    """
+    client = ctx.request_context.lifespan_context.client
+
+    try:
+        result = await client.get_value_details(
+            value_code=value_code,
+            language=language
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Error getting value details: {e}")
+        return {"error": str(e), "code": value_code}
+
+
+@mcp.tool()
+async def search_units(
+    search_text: str,
+    language: str = "EN",
+    deprecated: bool = False,
+    max_results: int = 10,
+    ctx: Context[ServerSession, AppContext] = None,
+) -> dict:
+    """
+    Search measurement units (millimeters, watts, volts, etc.).
+
+    Args:
+        search_text: Search query
+        language: Language code
+        deprecated: Include deprecated units
+        max_results: Maximum number of results (1-100)
+
+    Returns:
+        Dictionary with matching units
+    """
+    client = ctx.request_context.lifespan_context.client
+
+    try:
+        result = await client.search_units(
+            search_text=search_text,
+            language=language,
+            deprecated=deprecated,
+            from_=0,
+            size=min(max_results, 100)
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Error searching units: {e}")
+        return {"error": str(e)}
+
+
+@mcp.tool()
+async def get_unit_details(
+    unit_code: str,
+    language: str = "EN",
+    ctx: Context[ServerSession, AppContext] = None,
+) -> dict:
+    """
+    Get detailed information about a specific measurement unit.
+
+    Args:
+        unit_code: ETIM unit code (e.g., "EU571097")
+        language: Language code
+
+    Returns:
+        Unit details including description, abbreviation, and translations
+    """
+    client = ctx.request_context.lifespan_context.client
+
+    try:
+        result = await client.get_unit_details(
+            unit_code=unit_code,
+            language=language
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Error getting unit details: {e}")
+        return {"error": str(e), "code": unit_code}
+
+
+@mcp.tool()
+async def search_feature_groups(
+    search_text: str,
+    language: str = "EN",
+    max_results: int = 10,
+    ctx: Context[ServerSession, AppContext] = None,
+) -> dict:
+    """
+    Search ETIM feature groups (organizational categories for features).
+
+    Args:
+        search_text: Search query
+        language: Language code
+        max_results: Maximum number of results (1-100)
+
+    Returns:
+        Dictionary with matching feature groups
+    """
+    client = ctx.request_context.lifespan_context.client
+
+    try:
+        result = await client.search_feature_groups(
+            search_text=search_text,
+            language=language,
+            from_=0,
+            size=min(max_results, 100)
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Error searching feature groups: {e}")
+        return {"error": str(e)}
+
+
+@mcp.tool()
+async def get_feature_group_details(
+    feature_group_code: str,
+    language: str = "EN",
+    ctx: Context[ServerSession, AppContext] = None,
+) -> dict:
+    """
+    Get detailed information about a specific feature group.
+
+    Args:
+        feature_group_code: ETIM feature group code (e.g., "EFG00004")
+        language: Language code
+
+    Returns:
+        Feature group details including description and translations
+    """
+    client = ctx.request_context.lifespan_context.client
+
+    try:
+        result = await client.get_feature_group_details(
+            feature_group_code=feature_group_code,
+            language=language
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Error getting feature group details: {e}")
+        return {"error": str(e), "code": feature_group_code}
+
+
+@mcp.tool()
+async def get_group_details(
+    group_code: str,
+    language: str = "EN",
+    include_releases: bool = True,
+    ctx: Context[ServerSession, AppContext] = None,
+) -> dict:
+    """
+    Get detailed information about a specific product group.
+
+    Args:
+        group_code: ETIM group code (e.g., "EG020005")
+        language: Language code
+        include_releases: Include ETIM releases information
+
+    Returns:
+        Group details including description, translations, and releases
+    """
+    client = ctx.request_context.lifespan_context.client
+
+    try:
+        result = await client.get_group_details(
+            group_code=group_code,
+            language=language,
+            include_releases=include_releases
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Error getting group details: {e}")
+        return {"error": str(e), "code": group_code}
+
+
+@mcp.tool()
+async def get_class_diff(
+    class_code: str,
+    version: int,
+    language: str = "EN",
+    ctx: Context[ServerSession, AppContext] = None,
+) -> dict:
+    """
+    Get class details WITH changes compared to previous version.
+
+    This tool shows what changed between class versions, making it perfect
+    for understanding version migrations and tracking classification evolution.
+
+    Args:
+        class_code: ETIM class code (e.g., "EC000034")
+        version: Class version to compare (must be version 2 or higher)
+        language: Language code
+
+    Returns:
+        Class details with change information (added/removed/modified features)
+    """
+    client = ctx.request_context.lifespan_context.client
+
+    try:
+        result = await client.get_class_diff(
+            class_code=class_code,
+            version=version,
+            language=language
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Error getting class diff: {e}")
+        return {"error": str(e), "code": class_code, "version": version}
+
+
+@mcp.tool()
 async def health_check(
     ctx: Context[ServerSession, AppContext] = None,
 ) -> dict:

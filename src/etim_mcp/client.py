@@ -333,6 +333,326 @@ class EtimAPIClient:
 
         return result
 
+    async def search_values(
+        self,
+        search_text: str,
+        language: str = None,
+        deprecated: bool = False,
+        from_: int = 0,
+        size: int = 10,
+    ) -> Dict[str, Any]:
+        """
+        Search ETIM feature values
+
+        Args:
+            search_text: Search query
+            language: Language code
+            deprecated: Include deprecated values
+            from_: Pagination offset
+            size: Number of results
+
+        Returns:
+            Search results
+        """
+        language = language or self.default_language
+
+        cache_key = self.cache.generate_key("search:value", search_text, language, deprecated, from_, size)
+        cached = await self.cache.get(cache_key)
+        if cached:
+            return cached
+
+        logger.info(f"Searching values: '{search_text}' (lang: {language})")
+        data = {
+            "languagecode": language,
+            "from": from_,
+            "size": size,
+            "searchString": search_text,
+            "deprecated": deprecated,
+            "include": {"descriptions": True},
+        }
+
+        result = await self._make_request("POST", "/api/v2/Value/Search", data)
+        await self.cache.set(cache_key, result, settings.cache_ttl)
+
+        return result
+
+    async def get_value_details(
+        self,
+        value_code: str,
+        language: str = None,
+    ) -> Dict[str, Any]:
+        """
+        Get value details
+
+        Args:
+            value_code: ETIM value code (e.g., EV000397)
+            language: Language code
+
+        Returns:
+            Value details
+        """
+        language = language or self.default_language
+
+        cache_key = self.cache.generate_key("value", value_code, language)
+        cached = await self.cache.get(cache_key)
+        if cached:
+            return cached
+
+        logger.info(f"Getting value details: {value_code} (lang: {language})")
+        data = {
+            "languagecode": language,
+            "code": value_code,
+            "include": {
+                "descriptions": True,
+                "translations": True,
+            },
+        }
+
+        result = await self._make_request("POST", "/api/v2/Value/Details", data)
+        await self.cache.set(cache_key, result, settings.cache_class_ttl)
+
+        return result
+
+    async def search_units(
+        self,
+        search_text: str,
+        language: str = None,
+        deprecated: bool = False,
+        from_: int = 0,
+        size: int = 10,
+    ) -> Dict[str, Any]:
+        """
+        Search measurement units
+
+        Args:
+            search_text: Search query
+            language: Language code
+            deprecated: Include deprecated units
+            from_: Pagination offset
+            size: Number of results
+
+        Returns:
+            Search results
+        """
+        language = language or self.default_language
+
+        cache_key = self.cache.generate_key("search:unit", search_text, language, deprecated, from_, size)
+        cached = await self.cache.get(cache_key)
+        if cached:
+            return cached
+
+        logger.info(f"Searching units: '{search_text}' (lang: {language})")
+        data = {
+            "languagecode": language,
+            "from": from_,
+            "size": size,
+            "searchString": search_text,
+            "deprecated": deprecated,
+            "include": {"descriptions": True},
+        }
+
+        result = await self._make_request("POST", "/api/v2/Unit/Search", data)
+        await self.cache.set(cache_key, result, settings.cache_ttl)
+
+        return result
+
+    async def get_unit_details(
+        self,
+        unit_code: str,
+        language: str = None,
+    ) -> Dict[str, Any]:
+        """
+        Get unit details
+
+        Args:
+            unit_code: ETIM unit code (e.g., EU571097)
+            language: Language code
+
+        Returns:
+            Unit details
+        """
+        language = language or self.default_language
+
+        cache_key = self.cache.generate_key("unit", unit_code, language)
+        cached = await self.cache.get(cache_key)
+        if cached:
+            return cached
+
+        logger.info(f"Getting unit details: {unit_code} (lang: {language})")
+        data = {
+            "languagecode": language,
+            "code": unit_code,
+            "include": {
+                "descriptions": True,
+                "translations": True,
+            },
+        }
+
+        result = await self._make_request("POST", "/api/v2/Unit/Details", data)
+        await self.cache.set(cache_key, result, settings.cache_class_ttl)
+
+        return result
+
+    async def search_feature_groups(
+        self,
+        search_text: str,
+        language: str = None,
+        from_: int = 0,
+        size: int = 10,
+    ) -> Dict[str, Any]:
+        """
+        Search feature groups
+
+        Args:
+            search_text: Search query
+            language: Language code
+            from_: Pagination offset
+            size: Number of results
+
+        Returns:
+            Search results
+        """
+        language = language or self.default_language
+
+        cache_key = self.cache.generate_key("search:featuregroup", search_text, language, from_, size)
+        cached = await self.cache.get(cache_key)
+        if cached:
+            return cached
+
+        logger.info(f"Searching feature groups: '{search_text}' (lang: {language})")
+        data = {
+            "languagecode": language,
+            "from": from_,
+            "size": size,
+            "searchString": search_text,
+            "include": {"descriptions": True},
+        }
+
+        result = await self._make_request("POST", "/api/v2/FeatureGroup/Search", data)
+        await self.cache.set(cache_key, result, settings.cache_ttl)
+
+        return result
+
+    async def get_feature_group_details(
+        self,
+        feature_group_code: str,
+        language: str = None,
+    ) -> Dict[str, Any]:
+        """
+        Get feature group details
+
+        Args:
+            feature_group_code: ETIM feature group code (e.g., EFG00004)
+            language: Language code
+
+        Returns:
+            Feature group details
+        """
+        language = language or self.default_language
+
+        cache_key = self.cache.generate_key("featuregroup", feature_group_code, language)
+        cached = await self.cache.get(cache_key)
+        if cached:
+            return cached
+
+        logger.info(f"Getting feature group details: {feature_group_code} (lang: {language})")
+        data = {
+            "languagecode": language,
+            "code": feature_group_code,
+            "include": {
+                "descriptions": True,
+                "translations": True,
+            },
+        }
+
+        result = await self._make_request("POST", "/api/v2/FeatureGroup/Details", data)
+        await self.cache.set(cache_key, result, settings.cache_class_ttl)
+
+        return result
+
+    async def get_group_details(
+        self,
+        group_code: str,
+        language: str = None,
+        include_releases: bool = True,
+    ) -> Dict[str, Any]:
+        """
+        Get product group details
+
+        Args:
+            group_code: ETIM group code (e.g., EG020005)
+            language: Language code
+            include_releases: Include releases information
+
+        Returns:
+            Group details
+        """
+        language = language or self.default_language
+
+        cache_key = self.cache.generate_key("group", group_code, language, include_releases)
+        cached = await self.cache.get(cache_key)
+        if cached:
+            return cached
+
+        logger.info(f"Getting group details: {group_code} (lang: {language})")
+        data = {
+            "languagecode": language,
+            "code": group_code,
+            "include": {
+                "descriptions": True,
+                "translations": True,
+            },
+        }
+
+        if include_releases:
+            data["include"]["fields"] = ["Releases"]
+
+        result = await self._make_request("POST", "/api/v2/Group/Details", data)
+        await self.cache.set(cache_key, result, settings.cache_class_ttl)
+
+        return result
+
+    async def get_class_diff(
+        self,
+        class_code: str,
+        version: int,
+        language: str = None,
+    ) -> Dict[str, Any]:
+        """
+        Get class details with differences compared to previous version
+
+        Args:
+            class_code: ETIM class code (e.g., EC000034)
+            version: Class version to compare
+            language: Language code
+
+        Returns:
+            Class details with change information
+        """
+        language = language or self.default_language
+
+        cache_key = self.cache.generate_key("class:diff", class_code, version, language)
+        cached = await self.cache.get(cache_key)
+        if cached:
+            return cached
+
+        logger.info(f"Getting class diff: {class_code} v{version} (lang: {language})")
+        data = {
+            "languagecode": language,
+            "code": class_code,
+            "version": version,
+            "include": {
+                "descriptions": True,
+                "translations": True,
+                "fields": ["Group", "Releases", "Features"],
+            },
+        }
+
+        result = await self._make_request("POST", "/api/v2/Class/DetailsDiff", data)
+        await self.cache.set(cache_key, result, settings.cache_class_ttl)
+
+        return result
+
     async def test_connection(self) -> bool:
         """
         Test API connection
