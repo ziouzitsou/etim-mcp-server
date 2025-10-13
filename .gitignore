@@ -42,6 +42,9 @@ env/
 # MCP Configuration (local paths)
 .mcp.json
 
+# Development notes
+CLAUDE.md
+
 # Docker
 .dockerignore
 
