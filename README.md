@@ -1,7 +1,7 @@
 # ETIM MCP Server
 
 <p align="center">
-  <img src="https://www.etim-international.com/wp-content/uploads/2019/07/ETIM-International_logo.svg" alt="ETIM International" width="300"/>
+  <img src="assets/ETIM-inside.png" alt="ETIM International" width="300"/>
 </p>
 
 <p align="center">
@@ -16,7 +16,7 @@ A production-ready Model Context Protocol (MCP) server that provides LLMs with d
 
 ## Overview
 
-**ETIM** (Electro-Technical Information Model) is the international standard for classifying technical products, with a focus on electrical and electronic products. This MCP server wraps the ETIM API v2.0 and exposes it through the Model Context Protocol, making standardized product data accessible to any MCP-compatible AI assistant.
+**ETIM Technical Information Model** is the international standard for classifying technical products, with a focus on electrical and electronic products. This MCP server wraps the ETIM API v2.0 and exposes it through the Model Context Protocol, making standardized product data accessible to any MCP-compatible AI assistant.
 
 **Perfect for**:
 - 🏢 E-commerce platforms needing standardized product data
