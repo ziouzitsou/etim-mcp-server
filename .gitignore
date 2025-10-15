@@ -45,6 +45,9 @@ env/
 # Development notes
 CLAUDE.md
 
+# Development scratch directory (analysis, test scripts, experiments)
+dev-scratch/
+
 # Docker
 .dockerignore
 
