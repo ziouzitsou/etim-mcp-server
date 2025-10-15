@@ -44,7 +44,6 @@ env/
 
 # Development notes
 CLAUDE.md
-TESTING.md
 
 # Docker
 .dockerignore
