@@ -5,23 +5,30 @@ All notable changes to the ETIM MCP Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.0] - 2025-10-12
+## [1.2.0] - 2025-10-15
 
 ### Added
+- **Advanced filtering for `search_classes`** - Major feature enhancement ⭐
+  - `release_filter` - Filter by ETIM releases (e.g., ETIM-9.0, ETIM-10.0, DYNAMIC)
+  - `group_filter` - Filter by product groups (e.g., EG000017)
+  - `feature_filter` - Filter by specific features
+  - `value_filter` - Filter by specific values
+  - `exclude_modelling` - Exclude BIM/3D modelling classes
 - `get_all_languages` tool - Retrieve all 23 ETIM languages globally (not just account-specific)
 - `get_class_details_many` tool - Batch operation for retrieving multiple classes efficiently
 - `get_all_class_versions` tool - Get complete version history for a class
 - `get_class_for_release` tool - Query class details for specific ETIM releases
+- **EXAMPLES.md** - Comprehensive usage guide with 8 verified real-world examples
 - Comprehensive API coverage analysis document
-- Test suite for Phase 2 endpoints
 
 ### Changed
-- Improved API coverage from 60% to 76% (19/25 endpoints)
+- Improved API coverage to 62.5% (20/32 endpoints)
 - Enhanced caching for new batch operations
 - Updated README with badges and public release preparation
-- Organized test files into tests/ directory
+- Filter test results: 1,599 cable classes → 350 with ETIM-9.0 filter (78% reduction)
 
 ### Performance
+- Multiple filter combinations significantly reduce result sets
 - Batch operations significantly reduce API calls
 - 24-hour cache TTL for class details
 - 7-day cache TTL for language data
