@@ -94,6 +94,8 @@ class EtimAPIClient:
         language: str = None,
         from_: int = 0,
         size: int = 10,
+        modelling: Optional[bool] = None,
+        filters: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """
         Search ETIM product classes
@@ -103,26 +105,51 @@ class EtimAPIClient:
             language: Language code (defaults to configured default)
             from_: Pagination offset
             size: Number of results
+            modelling: Include only modelling classes (True) or exclude them (False), None for both
+            filters: List of filter dictionaries with 'code' and 'values' keys
+                     Example: [{"code": "Release", "values": ["ETIM-9.0"]},
+                              {"code": "Group", "values": ["EG000017", "EG000020"]}]
+                     Supported filter codes: Release, Group, Class, Feature, Value
 
         Returns:
             Search results with total and list of classes
         """
         language = language or self.default_language
 
-        # Check cache
-        cache_key = self.cache.generate_key("search:class", search_text, language, from_, size)
+        # Build cache key including filters
+        filter_key = None
+        if filters:
+            filter_key = tuple(
+                f"{f['code']}:{','.join(sorted(f['values']))}"
+                for f in sorted(filters, key=lambda x: x['code'])
+            )
+
+        cache_key = self.cache.generate_key(
+            "search:class", search_text, language, modelling, filter_key, from_, size
+        )
         cached = await self.cache.get(cache_key)
         if cached:
             return cached
 
         # Make API request
-        logger.info(f"Searching classes: '{search_text}' (lang: {language})")
+        filter_desc = f" with {len(filters)} filters" if filters else ""
+        modelling_desc = f" (modelling={modelling})" if modelling is not None else ""
+        logger.info(f"Searching classes: '{search_text}' (lang: {language}){filter_desc}{modelling_desc}")
+
         data = {
             "languagecode": language,
             "from": from_,
             "size": size,
             "searchString": search_text,
         }
+
+        # Add modelling flag if specified
+        if modelling is not None:
+            data["modelling"] = modelling
+
+        # Add filters if specified
+        if filters:
+            data["filters"] = filters
 
         result = await self._make_request("POST", "/api/v2/Class/Search", data)
 

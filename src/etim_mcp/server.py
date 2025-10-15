@@ -98,15 +98,25 @@ async def search_classes(
     search_text: str,
     language: str = "EN",
     max_results: int = 10,
+    exclude_modelling: bool = False,
+    release_filter: Optional[list[str]] = None,
+    group_filter: Optional[list[str]] = None,
+    feature_filter: Optional[list[str]] = None,
+    value_filter: Optional[list[str]] = None,
     ctx: Context[ServerSession, AppContext] = None,
 ) -> dict:
     """
-    Search ETIM product classes by keyword.
+    Search ETIM product classes by keyword with advanced filtering.
 
     Args:
         search_text: Search query (e.g., "cable", "downlight")
         language: Language code (EN, de-DE, nl-BE, etc.)
         max_results: Maximum number of results to return (1-100)
+        exclude_modelling: Exclude BIM/3D modelling classes from results
+        release_filter: Filter by ETIM releases (e.g., ["ETIM-9.0", "ETIM-10.0", "DYNAMIC"])
+        group_filter: Filter by product groups (e.g., ["EG000017", "EG000020"])
+        feature_filter: Filter by features (e.g., ["EF000472", "EF001678"])
+        value_filter: Filter by values (e.g., ["EV010186", "EV010168"])
 
     Returns:
         Dictionary with 'total' count and list of matching 'classes'
@@ -114,18 +124,32 @@ async def search_classes(
     client = ctx.request_context.lifespan_context.client
 
     try:
+        # Build filters list from individual filter parameters
+        filters = []
+        if release_filter:
+            filters.append({"code": "Release", "values": release_filter})
+        if group_filter:
+            filters.append({"code": "Group", "values": group_filter})
+        if feature_filter:
+            filters.append({"code": "Feature", "values": feature_filter})
+        if value_filter:
+            filters.append({"code": "Value", "values": value_filter})
+
         result = await client.search_classes(
             search_text=search_text,
             language=language,
             from_=0,
-            size=min(max_results, 100)
+            size=min(max_results, 100),
+            modelling=False if exclude_modelling else None,
+            filters=filters if filters else None
         )
 
         return {
             "total": result.get("total", 0),
             "classes": result.get("classes", []),
             "search_text": search_text,
-            "language": language
+            "language": language,
+            "filters_applied": len(filters) if filters else 0
         }
     except Exception as e:
         logger.error(f"Error searching classes: {e}")
