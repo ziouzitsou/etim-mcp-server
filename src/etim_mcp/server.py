@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Optional
 import sys
+import json
 from loguru import logger
 
 from mcp.server.fastmcp import FastMCP, Context
@@ -23,6 +24,55 @@ logger.add(
     format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>",
     level=settings.log_level,
 )
+
+
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+def _truncate_response(result: dict, max_tokens: int, class_code: str = None) -> dict:
+    """
+    Truncate response if it exceeds token limit.
+
+    MCP protocol has a hard limit of 25,000 tokens per response.
+    This function estimates token size and removes features if needed.
+
+    Args:
+        result: The response dict to check and potentially truncate
+        max_tokens: Maximum allowed tokens (default: 20000, safe margin below 25k)
+        class_code: Optional class code for logging
+
+    Returns:
+        Potentially truncated response with metadata about truncation
+    """
+    # Estimate token size (rough approximation: 1 token ≈ 4 characters)
+    estimated_tokens = len(json.dumps(result)) / 4
+
+    if estimated_tokens > max_tokens:
+        original_feature_count = 0
+        if "features" in result:
+            original_feature_count = len(result["features"])
+            result.pop("features", None)
+
+        # Log the truncation
+        logger.warning(
+            f"Response truncated for {class_code or 'class'}: "
+            f"{int(estimated_tokens)} tokens > {max_tokens} limit. "
+            f"Removed {original_feature_count} features."
+        )
+
+        # Add truncation metadata
+        result["_response_info"] = {
+            "truncated": True,
+            "reason": f"Response too large ({int(estimated_tokens)} tokens exceeds {max_tokens} limit)",
+            "original_feature_count": original_feature_count,
+            "estimated_original_tokens": int(estimated_tokens),
+            "max_token_limit": max_tokens,
+            "suggestion": "Use include_features=false to get metadata only, or set a higher max_response_tokens if needed",
+            "note": "Features were automatically removed to fit within MCP protocol limits"
+        }
+
+    return result
 
 
 @dataclass
@@ -162,6 +212,7 @@ async def get_class_details(
     version: Optional[int] = None,
     language: str = "EN",
     include_features: bool = True,
+    max_response_tokens: int = 20000,
     ctx: Context[ServerSession, AppContext] = None,
 ) -> dict:
     """
@@ -172,6 +223,7 @@ async def get_class_details(
         version: Specific version number (latest if not provided)
         language: Language code (EN, de-DE, nl-BE, etc.)
         include_features: Include full list of features
+        max_response_tokens: Maximum response size in tokens (default: 20000, safe margin below 25k MCP limit)
 
     Returns:
         Detailed class information including description, features, and metadata
@@ -185,6 +237,8 @@ async def get_class_details(
             language=language,
             include_features=include_features
         )
+        # Truncate if response is too large
+        result = _truncate_response(result, max_response_tokens, class_code)
         return result
     except Exception as e:
         logger.error(f"Error getting class details: {e}")
@@ -354,6 +408,7 @@ async def get_class_details_many(
     classes: list[dict],
     language: str = "EN",
     include_features: bool = True,
+    max_response_tokens: int = 20000,
     ctx: Context[ServerSession, AppContext] = None,
 ) -> list:
     """
@@ -367,6 +422,7 @@ async def get_class_details_many(
                  Example: [{"code": "EC003025", "version": 1}, {"code": "EC003025", "version": 2}]
         language: Language code (EN, de-DE, nl-BE, etc.)
         include_features: Include full list of features
+        max_response_tokens: Maximum response size in tokens (default: 20000, safe margin below 25k MCP limit)
 
     Returns:
         List of class details for all requested classes
@@ -379,6 +435,12 @@ async def get_class_details_many(
             language=language,
             include_features=include_features
         )
+        # Truncate each class in the result if needed
+        if isinstance(result, list):
+            result = [
+                _truncate_response(cls, max_response_tokens, cls.get("code", "unknown"))
+                for cls in result
+            ]
         return result
     except Exception as e:
         logger.error(f"Error getting class details for multiple classes: {e}")
@@ -390,6 +452,7 @@ async def get_all_class_versions(
     class_code: str,
     language: str = "EN",
     include_features: bool = False,
+    max_response_tokens: int = 20000,
     ctx: Context[ServerSession, AppContext] = None,
 ) -> list:
     """
@@ -402,6 +465,7 @@ async def get_all_class_versions(
         class_code: ETIM class code (e.g., "EC002883")
         language: Language code (EN, de-DE, nl-BE, etc.)
         include_features: Include full list of features (default: false for performance)
+        max_response_tokens: Maximum response size in tokens per version (default: 20000, safe margin below 25k MCP limit)
 
     Returns:
         List of all versions (v1, v2, v3, etc.) with full details
@@ -414,6 +478,12 @@ async def get_all_class_versions(
             language=language,
             include_features=include_features
         )
+        # Truncate each version if needed
+        if isinstance(result, list):
+            result = [
+                _truncate_response(ver, max_response_tokens, f"{class_code} v{ver.get('version', '?')}")
+                for ver in result
+            ]
         return result
     except Exception as e:
         logger.error(f"Error getting all versions for class {class_code}: {e}")
@@ -426,6 +496,7 @@ async def get_class_for_release(
     release: str,
     language: str = "EN",
     include_features: bool = True,
+    max_response_tokens: int = 20000,
     ctx: Context[ServerSession, AppContext] = None,
 ) -> dict:
     """
@@ -439,6 +510,7 @@ async def get_class_for_release(
         release: ETIM release name (e.g., "ETIM-9.0", "ETIM-10.0")
         language: Language code (EN, de-DE, nl-BE, etc.)
         include_features: Include full list of features
+        max_response_tokens: Maximum response size in tokens (default: 20000, safe margin below 25k MCP limit)
 
     Returns:
         Class details as they existed in the specified ETIM release
@@ -452,6 +524,8 @@ async def get_class_for_release(
             language=language,
             include_features=include_features
         )
+        # Truncate if response is too large
+        result = _truncate_response(result, max_response_tokens, f"{class_code} ({release})")
         return result
     except Exception as e:
         logger.error(f"Error getting class {class_code} for release {release}: {e}")
@@ -462,6 +536,7 @@ async def get_class_for_release(
 async def compare_classes(
     class_codes: list[str],
     language: str = "EN",
+    max_response_tokens: int = 20000,
     ctx: Context[ServerSession, AppContext] = None,
 ) -> dict:
     """
@@ -470,6 +545,7 @@ async def compare_classes(
     Args:
         class_codes: List of class codes to compare (e.g., ["EC001744", "EC001679"])
         language: Language code
+        max_response_tokens: Maximum response size in tokens per class (default: 20000, safe margin below 25k MCP limit)
 
     Returns:
         Dictionary with comparison data for all classes
@@ -485,6 +561,8 @@ async def compare_classes(
                 language=language,
                 include_features=True
             )
+            # Truncate each class if needed
+            data = _truncate_response(data, max_response_tokens, code)
             classes_data.append(data)
         except Exception as e:
             logger.error(f"Error getting class {code}: {e}")
@@ -726,6 +804,7 @@ async def get_class_diff(
     class_code: str,
     version: int,
     language: str = "EN",
+    max_response_tokens: int = 20000,
     ctx: Context[ServerSession, AppContext] = None,
 ) -> dict:
     """
@@ -738,6 +817,7 @@ async def get_class_diff(
         class_code: ETIM class code (e.g., "EC000034")
         version: Class version to compare (must be version 2 or higher)
         language: Language code
+        max_response_tokens: Maximum response size in tokens (default: 20000, safe margin below 25k MCP limit)
 
     Returns:
         Class details with change information (added/removed/modified features)
@@ -750,6 +830,8 @@ async def get_class_diff(
             version=version,
             language=language
         )
+        # Truncate if response is too large
+        result = _truncate_response(result, max_response_tokens, f"{class_code} diff v{version}")
         return result
     except Exception as e:
         logger.error(f"Error getting class diff: {e}")
