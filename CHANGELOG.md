@@ -5,6 +5,56 @@ All notable changes to the ETIM MCP Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-10-21
+
+### Added
+- **New `features` parameter** - Enhanced feature control with 4 modes ⭐
+  - `"none"` - No features returned (metadata only)
+  - `"count"` - Just feature count (99% size reduction for 121 features)
+  - `"summary"` - Feature code + description only (90% reduction)
+  - `"full"` - Complete feature details (previous behavior)
+- **New `get_class_features` tool** - Pagination support for feature-heavy classes
+  - Page-based navigation (page, per_page parameters)
+  - Max 100 features per page
+  - Perfect for classes like EC001744 (121 features)
+  - Returns pagination metadata (total_features, total_pages, has_next_page, etc.)
+
+### Changed
+- **BREAKING: `include_features` default changed from `True` to `False`**
+  - Much safer for large classes - users now opt-in to features
+  - Prevents accidental large responses and token limit errors
+  - Old behavior available by setting `include_features=True` or `features="full"`
+- Deprecated `include_features` parameter in favor of `features` mode parameter
+  - `include_features` still works for backward compatibility
+  - `features` parameter takes precedence when both are specified
+- Enhanced all 5 class detail tools with flexible feature control:
+  - `get_class_details`
+  - `get_class_details_many`
+  - `get_all_class_versions`
+  - `get_class_for_release`
+  - `compare_classes`
+
+### Migration Guide (v1.2.x → v1.3.0)
+```python
+# v1.2.x - Features included by default
+get_class_details("EC001744")  # Returned all 121 features
+
+# v1.3.0 - Features excluded by default (BREAKING CHANGE)
+get_class_details("EC001744")  # Returns metadata only, no features
+
+# Migration options:
+get_class_details("EC001744", include_features=True)  # Old behavior
+get_class_details("EC001744", features="full")        # Recommended new syntax
+get_class_details("EC001744", features="count")       # Just the count (feature_count: 121)
+get_class_details("EC001744", features="summary")     # Code + description only
+get_class_features("EC001744", page=1, per_page=50)   # Paginated access
+```
+
+### Performance
+- **99% size reduction** with `features="count"` mode (121 features → single integer)
+- **90% size reduction** with `features="summary"` mode (full objects → code+description)
+- **Pagination** allows processing large feature sets in manageable chunks
+
 ## [1.2.2] - 2025-10-21
 
 ### Fixed

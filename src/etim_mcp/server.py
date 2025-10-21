@@ -3,7 +3,7 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Literal
 import sys
 import json
 from loguru import logger
@@ -71,6 +71,58 @@ def _truncate_response(result: dict, max_tokens: int, class_code: str = None) ->
             "suggestion": "Use include_features=false to get metadata only, or set a higher max_response_tokens if needed",
             "note": "Features were automatically removed to fit within MCP protocol limits"
         }
+
+    return result
+
+
+def _process_features(result: dict, features_mode: str, include_features: bool) -> dict:
+    """
+    Process features in the response based on the requested mode.
+
+    Args:
+        result: The response dict containing features
+        features_mode: Mode for feature inclusion ("none", "count", "summary", "full", or None)
+        include_features: Legacy boolean parameter for backward compatibility
+
+    Returns:
+        Response with features processed according to the mode
+    """
+    # Determine the effective mode
+    if features_mode is None:
+        # Backward compatibility: use include_features
+        mode = "full" if include_features else "none"
+    else:
+        # features_mode takes precedence
+        mode = features_mode
+
+    # If no features in response, return as-is
+    if "features" not in result:
+        return result
+
+    features = result.get("features", [])
+
+    if mode == "none":
+        # Remove features entirely
+        result.pop("features", None)
+
+    elif mode == "count":
+        # Replace features with just the count
+        result.pop("features", None)
+        result["feature_count"] = len(features)
+
+    elif mode == "summary":
+        # Keep only code and description for each feature
+        result["features"] = [
+            {
+                "code": f.get("code"),
+                "description": f.get("description")
+            }
+            for f in features
+        ]
+
+    elif mode == "full":
+        # Keep all features (default behavior)
+        pass
 
     return result
 
@@ -211,7 +263,8 @@ async def get_class_details(
     class_code: str,
     version: int = 0,
     language: str = "EN",
-    include_features: bool = True,
+    features: Optional[Literal["none", "count", "summary", "full"]] = None,
+    include_features: bool = False,
     max_response_tokens: int = 20000,
     ctx: Context[ServerSession, AppContext] = None,
 ) -> dict:
@@ -222,11 +275,14 @@ async def get_class_details(
         class_code: ETIM class code (e.g., "EC001744")
         version: Specific version number (latest if not provided)
         language: Language code (EN, de-DE, nl-BE, etc.)
-        include_features: Include full list of features
+        features: Feature inclusion mode - "none" (no features), "count" (feature count only),
+                 "summary" (code + description only), "full" (complete details).
+                 If not specified, uses include_features for backward compatibility.
+        include_features: [DEPRECATED] Use 'features' parameter instead. Defaults to False.
         max_response_tokens: Maximum response size in tokens (default: 20000, safe margin below 25k MCP limit)
 
     Returns:
-        Detailed class information including description, features, and metadata
+        Detailed class information including description, features (based on mode), and metadata
     """
     client = ctx.request_context.lifespan_context.client
 
@@ -234,17 +290,88 @@ async def get_class_details(
         # Convert 0 to None for the client (ETIM versions start at 1, not 0)
         version_param = None if version == 0 else version
 
+        # Always fetch with features=True from API, we'll process them after
         result = await client.get_class_details(
             class_code=class_code,
             version=version_param,
             language=language,
-            include_features=include_features
+            include_features=True  # Always fetch features from API
         )
+
+        # Process features based on requested mode
+        result = _process_features(result, features, include_features)
+
         # Truncate if response is too large
         result = _truncate_response(result, max_response_tokens, class_code)
         return result
     except Exception as e:
         logger.error(f"Error getting class details: {e}")
+        return {"error": str(e), "code": class_code}
+
+
+@mcp.tool()
+async def get_class_features(
+    class_code: str,
+    page: int = 1,
+    per_page: int = 50,
+    language: str = "EN",
+    ctx: Context[ServerSession, AppContext] = None,
+) -> dict:
+    """
+    Get features for a class with pagination support.
+
+    This tool is perfect for classes with many features (e.g., EC001744 with 121 features).
+    Instead of fetching all features at once, you can paginate through them.
+
+    Args:
+        class_code: ETIM class code (e.g., "EC001744")
+        page: Page number (starts at 1)
+        per_page: Number of features per page (max 100, default 50)
+        language: Language code (EN, de-DE, nl-BE, etc.)
+
+    Returns:
+        Paginated features with metadata about total count and pages
+    """
+    client = ctx.request_context.lifespan_context.client
+
+    try:
+        # Fetch full class details with features
+        result = await client.get_class_details(
+            class_code=class_code,
+            language=language,
+            include_features=True
+        )
+
+        features = result.get("features", [])
+        total_features = len(features)
+
+        # Validate and adjust pagination parameters
+        per_page = min(per_page, 100)  # Max 100 per page
+        page = max(page, 1)  # Min page 1
+
+        # Calculate pagination
+        total_pages = (total_features + per_page - 1) // per_page  # Ceiling division
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+
+        # Get paginated features
+        paginated_features = features[start_idx:end_idx]
+
+        return {
+            "code": class_code,
+            "description": result.get("description"),
+            "features": paginated_features,
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total_features": total_features,
+                "total_pages": total_pages,
+                "has_next_page": page < total_pages,
+                "has_prev_page": page > 1
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error getting paginated features for class {class_code}: {e}")
         return {"error": str(e), "code": class_code}
 
 
@@ -410,7 +537,8 @@ async def get_all_languages(
 async def get_class_details_many(
     classes: list[dict],
     language: str = "EN",
-    include_features: bool = True,
+    features: Optional[Literal["none", "count", "summary", "full"]] = None,
+    include_features: bool = False,
     max_response_tokens: int = 20000,
     ctx: Context[ServerSession, AppContext] = None,
 ) -> list:
@@ -424,7 +552,8 @@ async def get_class_details_many(
         classes: List of class dictionaries, each with 'code' and optionally 'version'
                  Example: [{"code": "EC003025", "version": 1}, {"code": "EC003025", "version": 2}]
         language: Language code (EN, de-DE, nl-BE, etc.)
-        include_features: Include full list of features
+        features: Feature inclusion mode - "none", "count", "summary", or "full"
+        include_features: [DEPRECATED] Use 'features' parameter instead. Defaults to False.
         max_response_tokens: Maximum response size in tokens (default: 20000, safe margin below 25k MCP limit)
 
     Returns:
@@ -433,15 +562,20 @@ async def get_class_details_many(
     client = ctx.request_context.lifespan_context.client
 
     try:
+        # Always fetch with features=True from API
         result = await client.get_class_details_many(
             classes=classes,
             language=language,
-            include_features=include_features
+            include_features=True
         )
-        # Truncate each class in the result if needed
+        # Process features for each class and truncate if needed
         if isinstance(result, list):
             result = [
-                _truncate_response(cls, max_response_tokens, cls.get("code", "unknown"))
+                _truncate_response(
+                    _process_features(cls, features, include_features),
+                    max_response_tokens,
+                    cls.get("code", "unknown")
+                )
                 for cls in result
             ]
         return result
@@ -454,6 +588,7 @@ async def get_class_details_many(
 async def get_all_class_versions(
     class_code: str,
     language: str = "EN",
+    features: Optional[Literal["none", "count", "summary", "full"]] = None,
     include_features: bool = False,
     max_response_tokens: int = 20000,
     ctx: Context[ServerSession, AppContext] = None,
@@ -467,7 +602,8 @@ async def get_all_class_versions(
     Args:
         class_code: ETIM class code (e.g., "EC002883")
         language: Language code (EN, de-DE, nl-BE, etc.)
-        include_features: Include full list of features (default: false for performance)
+        features: Feature inclusion mode - "none", "count", "summary", or "full"
+        include_features: [DEPRECATED] Use 'features' parameter instead. Defaults to False.
         max_response_tokens: Maximum response size in tokens per version (default: 20000, safe margin below 25k MCP limit)
 
     Returns:
@@ -476,15 +612,20 @@ async def get_all_class_versions(
     client = ctx.request_context.lifespan_context.client
 
     try:
+        # Always fetch with features=True from API
         result = await client.get_all_class_versions(
             class_code=class_code,
             language=language,
-            include_features=include_features
+            include_features=True
         )
-        # Truncate each version if needed
+        # Process features for each version and truncate if needed
         if isinstance(result, list):
             result = [
-                _truncate_response(ver, max_response_tokens, f"{class_code} v{ver.get('version', '?')}")
+                _truncate_response(
+                    _process_features(ver, features, include_features),
+                    max_response_tokens,
+                    f"{class_code} v{ver.get('version', '?')}"
+                )
                 for ver in result
             ]
         return result
@@ -498,7 +639,8 @@ async def get_class_for_release(
     class_code: str,
     release: str,
     language: str = "EN",
-    include_features: bool = True,
+    features: Optional[Literal["none", "count", "summary", "full"]] = None,
+    include_features: bool = False,
     max_response_tokens: int = 20000,
     ctx: Context[ServerSession, AppContext] = None,
 ) -> dict:
@@ -512,7 +654,8 @@ async def get_class_for_release(
         class_code: ETIM class code (e.g., "EC000034")
         release: ETIM release name (e.g., "ETIM-9.0", "ETIM-10.0")
         language: Language code (EN, de-DE, nl-BE, etc.)
-        include_features: Include full list of features
+        features: Feature inclusion mode - "none", "count", "summary", or "full"
+        include_features: [DEPRECATED] Use 'features' parameter instead. Defaults to False.
         max_response_tokens: Maximum response size in tokens (default: 20000, safe margin below 25k MCP limit)
 
     Returns:
@@ -521,13 +664,15 @@ async def get_class_for_release(
     client = ctx.request_context.lifespan_context.client
 
     try:
+        # Always fetch with features=True from API
         result = await client.get_class_for_release(
             class_code=class_code,
             release=release,
             language=language,
-            include_features=include_features
+            include_features=True
         )
-        # Truncate if response is too large
+        # Process features and truncate if needed
+        result = _process_features(result, features, include_features)
         result = _truncate_response(result, max_response_tokens, f"{class_code} ({release})")
         return result
     except Exception as e:
@@ -539,6 +684,8 @@ async def get_class_for_release(
 async def compare_classes(
     class_codes: list[str],
     language: str = "EN",
+    features: Optional[Literal["none", "count", "summary", "full"]] = None,
+    include_features: bool = False,
     max_response_tokens: int = 20000,
     ctx: Context[ServerSession, AppContext] = None,
 ) -> dict:
@@ -548,6 +695,8 @@ async def compare_classes(
     Args:
         class_codes: List of class codes to compare (e.g., ["EC001744", "EC001679"])
         language: Language code
+        features: Feature inclusion mode - "none", "count", "summary", or "full"
+        include_features: [DEPRECATED] Use 'features' parameter instead. Defaults to False.
         max_response_tokens: Maximum response size in tokens per class (default: 20000, safe margin below 25k MCP limit)
 
     Returns:
@@ -559,12 +708,14 @@ async def compare_classes(
 
     for code in class_codes[:5]:  # Limit to 5 classes
         try:
+            # Always fetch with features=True from API
             data = await client.get_class_details(
                 class_code=code,
                 language=language,
                 include_features=True
             )
-            # Truncate each class if needed
+            # Process features and truncate each class if needed
+            data = _process_features(data, features, include_features)
             data = _truncate_response(data, max_response_tokens, code)
             classes_data.append(data)
         except Exception as e:
