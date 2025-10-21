@@ -48,6 +48,9 @@ CLAUDE.md
 # Development scratch directory (analysis, test scripts, experiments)
 dev-scratch/
 
+# Helper scripts and working files (feature enrichment, migrations, utilities)
+helpers/
+
 # Docker
 .dockerignore
 

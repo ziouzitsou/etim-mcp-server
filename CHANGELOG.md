@@ -5,6 +5,35 @@ All notable changes to the ETIM MCP Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2025-10-21
+
+### Fixed
+- **Google Vertex AI compatibility** - Resolved schema compatibility issues (#1, #2)
+  - Changed filter parameters from `Optional[list[str]] = None` to `list[str] = []`
+  - Changed version parameter from `Optional[int] = None` to `int = 0` with conversion logic
+  - Removes `anyOf` schemas that Vertex AI rejects when using the server as a sub-agent
+  - Fully backward compatible - no breaking changes
+
+### Contributors
+- @otvegg - First external contributor! Thank you for identifying the issue and providing the fix 🎉
+
+## [1.2.1] - 2025-10-16
+
+### Added
+- **Automatic response truncation** for large classes to prevent MCP protocol failures
+  - Added `max_response_tokens` parameter (default: 20000) to 6 class detail tools
+  - Automatic feature removal when responses exceed token limits
+  - Clear `_response_info` metadata explaining truncation with user guidance
+  - Server-side logging of truncation events with feature counts
+
+### Changed
+- Enhanced class detail tools to gracefully handle feature-rich classes (e.g., EC001744 with 121 features)
+- Tools now never fail due to response size - graceful degradation instead
+
+### Fixed
+- Prevents "response exceeds maximum allowed tokens" errors for classes with many features
+- Classes with 100+ features no longer cause tool failures
+
 ## [1.2.0] - 2025-10-15
 
 ### Added
