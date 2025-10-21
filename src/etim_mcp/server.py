@@ -149,10 +149,10 @@ async def search_classes(
     language: str = "EN",
     max_results: int = 10,
     exclude_modelling: bool = False,
-    release_filter: Optional[list[str]] = None,
-    group_filter: Optional[list[str]] = None,
-    feature_filter: Optional[list[str]] = None,
-    value_filter: Optional[list[str]] = None,
+    release_filter: list[str] = [],
+    group_filter: list[str] = [],
+    feature_filter: list[str] = [],
+    value_filter: list[str] = [],
     ctx: Context[ServerSession, AppContext] = None,
 ) -> dict:
     """
@@ -209,7 +209,7 @@ async def search_classes(
 @mcp.tool()
 async def get_class_details(
     class_code: str,
-    version: Optional[int] = None,
+    version: int = 0,
     language: str = "EN",
     include_features: bool = True,
     max_response_tokens: int = 20000,
@@ -231,9 +231,12 @@ async def get_class_details(
     client = ctx.request_context.lifespan_context.client
 
     try:
+        # Convert 0 to None for the client (ETIM versions start at 1, not 0)
+        version_param = None if version == 0 else version
+
         result = await client.get_class_details(
             class_code=class_code,
-            version=version,
+            version=version_param,
             language=language,
             include_features=include_features
         )
