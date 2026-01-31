@@ -27,7 +27,7 @@ A production-ready Model Context Protocol (MCP) server that provides LLMs with d
 
 ## Features
 
-- **21 MCP Tools** for comprehensive ETIM API access:
+- **22 MCP Tools** for comprehensive ETIM API access:
   - Search product classes, features, groups, feature groups, values, and units
   - Get detailed information about all ETIM entities
   - Compare multiple product classes side-by-side
@@ -53,6 +53,11 @@ A production-ready Model Context Protocol (MCP) server that provides LLMs with d
   - Token caching with 5-minute expiry buffer
   - Automatic refresh on 401 errors
   - Transparent token handling
+
+- **Multi-Transport Support**:
+  - `stdio` - Local Claude Desktop/Code integration (default)
+  - `sse` - Server-Sent Events for remote access (e.g., Windows → WSL)
+  - `streamable-http` - Newer MCP protocol variant
 
 - **Production-Ready Architecture**:
   - Docker Compose setup with health checks
@@ -122,6 +127,9 @@ All configuration is managed through environment variables in the `.env` file:
 | `CACHE_CLASS_TTL` | Class details cache TTL | `86400` (24 hours) |
 | `CACHE_LANGUAGES_TTL` | Languages/releases cache TTL | `604800` (7 days) |
 | `LOG_LEVEL` | Logging level | `INFO` |
+| `MCP_TRANSPORT` | Transport mode: `stdio`, `sse`, or `streamable-http` | `stdio` |
+| `MCP_HOST` | Host to bind for HTTP transports | `0.0.0.0` |
+| `MCP_PORT` | Port for HTTP transports | `8000` |
 
 ### Supported Languages
 
@@ -208,6 +216,35 @@ After adding this configuration:
 1. Restart Claude Desktop
 2. The ETIM tools should appear in Claude's available tools
 3. Try asking: "Search for cable products in ETIM"
+
+### Remote Access via SSE (e.g., Windows → WSL)
+
+For accessing the MCP server remotely (e.g., from Windows Claude Desktop to a server running in WSL):
+
+1. **Configure the server for SSE mode** in your `.env`:
+   ```env
+   MCP_TRANSPORT=sse
+   MCP_HOST=0.0.0.0
+   MCP_PORT=8000
+   ```
+
+2. **Start the server** (it will listen on port 8000):
+   ```bash
+   docker-compose up -d
+   ```
+
+3. **Configure Claude Desktop on Windows** to connect via SSE:
+   ```json
+   {
+     "mcpServers": {
+       "etim": {
+         "url": "http://<WSL-IP>:8000/sse"
+       }
+     }
+   }
+   ```
+
+   Replace `<WSL-IP>` with your WSL IP address (find it with `hostname -I` in WSL).
 
 ## Available Tools
 
@@ -420,25 +457,27 @@ Check server health and connection status.
 ## Architecture
 
 ```
-┌─────────────────────┐
-│  Claude Desktop     │
-│   (MCP Client)      │
-└──────────┬──────────┘
-           │ stdio
-┌──────────▼──────────┐
-│   FastMCP Server    │
-│  (Python/AsyncIO)   │
-├─────────────────────┤
-│  • Auth Manager     │
-│  • API Client       │
-│  • Cache Layer      │
-└─────┬──────────┬────┘
-      │          │
-      │          │ TCP
-┌─────▼──────┐   │
-│ Redis      │◄──┘
+┌─────────────────────┐     ┌─────────────────────┐
+│  Claude Desktop     │     │  Claude Desktop     │
+│   (Local - stdio)   │     │  (Remote - SSE)     │
+└──────────┬──────────┘     └──────────┬──────────┘
+           │ stdio                     │ HTTP :8000
+           │                           │
+┌──────────▼───────────────────────────▼──────────┐
+│              FastMCP Server                      │
+│            (Python/AsyncIO)                      │
+├─────────────────────────────────────────────────┤
+│  • Multi-Transport (stdio/sse/streamable-http)  │
+│  • Auth Manager                                  │
+│  • API Client                                    │
+│  • Cache Layer                                   │
+└─────┬───────────────────────────────────────────┘
+      │
+      │ TCP
+┌─────▼──────┐
+│ Redis      │
 │ (Cache)    │
-└────────────┘
+└─────┬──────┘
       │
 ┌─────▼──────────────┐
 │  ETIM API v2.0     │
@@ -661,17 +700,21 @@ For MCP protocol questions:
 
 ## Version History
 
-- **1.2.0** (Current): Phase 2 expansion - Batch operations & complete API coverage
+- **1.4.0** (Current): Multi-transport support
+  - Added SSE and Streamable HTTP transport modes for remote access
+  - New environment variables: `MCP_TRANSPORT`, `MCP_HOST`, `MCP_PORT`
+  - Perfect for Windows Claude Desktop → WSL server scenarios
+  - Added uvicorn as ASGI server for HTTP transports
+- **1.3.0**: Enhanced feature control and pagination
+  - New `features` parameter with 4 modes (none/count/summary/full)
+  - New `get_class_features` tool for paginated feature access
+  - **BREAKING**: `include_features` now defaults to `False`
+  - Now covers 22 MCP tools
+- **1.2.0**: Phase 2 expansion - Batch operations & complete API coverage
   - Added 4 new tools: All Languages, Batch Class Details, All Class Versions, Class for Release
   - Now covers 21 MCP tools (up from 17)
   - Enhanced API coverage from 60% to 76% of available endpoints
-  - Added batch operations for performance optimization
-  - Added version history and release-specific queries
-  - All 21 tools ready for testing (2025-10-12)
 - **1.1.0**: Phase 1 expansion
   - Added 8 new tools: Values, Units, Feature Groups, Group Details, Class Diff
   - Now covers 17 MCP tools (up from 9)
-  - Enhanced API coverage from 29% to 60% of available endpoints
-  - Improved caching for all new endpoints
-  - All 17 tools validated against HTTP file examples (2025-10-12)
 - **1.0.0**: Initial release with 9 tools, Redis caching, and Docker Compose setup
