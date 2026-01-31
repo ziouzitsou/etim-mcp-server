@@ -15,5 +15,8 @@ python-dotenv>=1.0.0
 # Logging
 loguru>=0.7.0
 
+# ASGI Server (for HTTP/SSE transport)
+uvicorn>=0.30.0
+
 # Type hints
 typing-extensions>=4.0.0

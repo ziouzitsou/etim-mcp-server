@@ -1107,4 +1107,26 @@ Use get_class_details with include_features=True to get the full information.
 
 # Entry point
 if __name__ == "__main__":
-    mcp.run()
+    import os
+
+    transport = os.getenv("MCP_TRANSPORT", "stdio")
+
+    if transport == "sse":
+        # SSE transport for remote access (e.g., from Windows Claude)
+        import uvicorn
+        host = os.getenv("MCP_HOST", "0.0.0.0")
+        port = int(os.getenv("MCP_PORT", "8000"))
+        logger.info(f"Starting ETIM MCP Server with SSE transport on {host}:{port}")
+        app = mcp.sse_app()
+        uvicorn.run(app, host=host, port=port)
+    elif transport == "streamable-http":
+        # Streamable HTTP transport (newer protocol)
+        import uvicorn
+        host = os.getenv("MCP_HOST", "0.0.0.0")
+        port = int(os.getenv("MCP_PORT", "8000"))
+        logger.info(f"Starting ETIM MCP Server with Streamable HTTP on {host}:{port}")
+        app = mcp.streamable_http_app()
+        uvicorn.run(app, host=host, port=port)
+    else:
+        # Default: stdio transport for local Claude Desktop/Code
+        mcp.run()
