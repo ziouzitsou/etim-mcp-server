@@ -5,6 +5,41 @@ All notable changes to the ETIM MCP Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2025-01-31
+
+### Added
+- **Multi-transport support** - Server now supports 3 transport modes ⭐
+  - `stdio` (default) - Local Claude Desktop/Code integration
+  - `sse` - Server-Sent Events for remote access (e.g., Windows → WSL)
+  - `streamable-http` - Newer MCP protocol variant
+- New environment variables for transport configuration:
+  - `MCP_TRANSPORT` - Select transport mode (stdio/sse/streamable-http)
+  - `MCP_HOST` - Host to bind for HTTP transports (default: 0.0.0.0)
+  - `MCP_PORT` - Port for HTTP transports (default: 8000)
+- Added `uvicorn` as ASGI server for HTTP-based transports
+
+### Changed
+- Docker Compose configuration updated for SSE mode:
+  - Exposed port 8000 for remote access
+  - Removed deprecated `version` field
+  - Removed `stdin_open`/`tty` (not needed for SSE mode)
+
+### Usage Examples
+```bash
+# Local stdio mode (default)
+MCP_TRANSPORT=stdio python -m src.etim_mcp.server
+
+# SSE mode for remote access
+MCP_TRANSPORT=sse MCP_PORT=8000 python -m src.etim_mcp.server
+
+# Windows Claude Desktop config for SSE
+{
+  "mcpServers": {
+    "etim": { "url": "http://<WSL-IP>:8000/sse" }
+  }
+}
+```
+
 ## [1.3.0] - 2025-10-21
 
 ### Added
@@ -164,8 +199,6 @@ get_class_features("EC001744", page=1, per_page=50)   # Paginated access
 
 ### Planned
 - BIM/Modelling support (6 additional endpoints)
-- Pagination for feature-heavy responses
-- Field selection for response size optimization
 - Additional language support based on community needs
 
 ---
